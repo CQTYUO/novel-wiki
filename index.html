@@ -88,8 +88,19 @@ main{padding:10px 22px 60px;max-width:1280px;margin:0 auto}
 .relnode{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin:6px;font-size:14px;cursor:pointer;transition:.15s}
 .relnode:hover{border-color:var(--rel);color:#fff}
 .relnode .rtype{font-size:12px;color:var(--rel);display:block}
-.back-btn{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 16px;cursor:pointer;margin-bottom:16px;font-size:14px}
-.back-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.detail-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;margin-bottom:16px;position:sticky;top:56px;z-index:40;background:rgba(15,18,24,.94);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px}
+.nav-btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:14px;white-space:nowrap;transition:.15s}
+.nav-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.nav-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.nav-btn.primary:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.crumb{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow-x:auto;font-size:13px;color:var(--text-dim);white-space:nowrap}
+.crumb-home{color:var(--text-dim);cursor:pointer;transition:.15s}
+.crumb-home:hover{color:var(--accent2)}
+.crumb-node{color:var(--accent2);cursor:pointer;transition:.15s}
+.crumb-node:hover{text-decoration:underline}
+.crumb-node.cur{color:var(--text);cursor:default}
+.crumb-node.cur:hover{text-decoration:none}
+.crumb-sep{color:var(--text-faint)}
 .detail-head{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:18px}
 .detail-head h2{font-size:24px;margin-bottom:10px}
 .section-title{font-size:16px;color:var(--gold);margin:22px 0 12px;padding-left:10px;border-left:3px solid var(--accent)}
@@ -68536,6 +68547,8 @@ const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':
 const chNo = s => { const m = String(s||'').match(/\d+/); return m ? +m[0] : 0; };
 let cur = 'characters', curChip = '';
 let curPage = 1;
+let navStack = [];
+let curDetail = null;
 const PER_PAGE = 12;
 
 function paginate(total){
@@ -68588,12 +68601,12 @@ function md2html(md){
   const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   return String(md||'').split('\n').map(line=>{
     const t = line.trim();
-    if(line.startsWith('### ')) return `<h4 style="margin:14px 0 6px;color:var(--text)">${inline(line.slice(4))}</h4>`;
-    if(line.startsWith('## ')) return `<h3 style="margin:20px 0 8px;color:var(--gold);padding-left:10px;border-left:3px solid var(--accent)">${inline(line.slice(3))}</h3>`;
-    if(line.startsWith('# ')) return `<h2 style="margin:0 0 14px;font-size:22px">${inline(line.slice(2))}</h2>`;
-    if(/^[-*]\s/.test(t)) return `<p style="margin:6px 0 6px 1.6em"><span style="color:var(--gold)">•</span> ${inline(t.replace(/^[-*]\s/,''))}</p>`;
+    if(line.startsWith('### ')) return `<h4 style="margin:16px 0 8px;color:var(--text);font-size:16px">${inline(line.slice(4))}</h4>`;
+    if(line.startsWith('## ')) return `<h3 style="margin:24px 0 10px;color:var(--gold);padding-left:12px;border-left:3px solid var(--accent);font-size:18px">${inline(line.slice(3))}</h3>`;
+    if(line.startsWith('# ')) return `<h2 style="margin:4px 0 20px;font-size:25px;text-align:center;color:var(--text)">${inline(line.slice(2))}</h2>`;
+    if(/^[-*]\s/.test(t)) return `<p style="margin:8px 0 8px 1.6em;text-align:justify"><span style="color:var(--gold)">•</span> ${inline(t.replace(/^[-*]\s/,''))}</p>`;
     if(t==='') return '';
-    return `<p style="margin:8px 0;text-indent:2em">${inline(line)}</p>`;
+    return `<p style="margin:12px 0;text-indent:2em;text-align:justify;line-height:1.9">${inline(line)}</p>`;
   }).join('');
 }
 
@@ -68682,17 +68695,57 @@ function renderRelations(name){
     Object.entries(nodes).map(([o,types])=>`<span class="relnode" data-name="${esc(o)}">${esc(o)}<span class="rtype">${esc([...new Set(types)].join('、'))}</span></span>`).join('');
 }
 
-function showDetail(name){
+function breadcrumbHtml(){
+  const trail = [...navStack, curDetail];
+  const home = `<span class="crumb-home" data-crumb="home">🏠 人物列表</span>`;
+  const nodes = trail.map((n,i)=>{
+    const isCur = i===trail.length-1;
+    return `<span class="crumb-sep">›</span><span class="crumb-node ${isCur?'cur':''}" data-crumb="${esc(n)}">${esc(n)}</span>`;
+  }).join('');
+  return `<div class="crumb">${home}${nodes}</div>`;
+}
+
+function showDetail(name, push=true){
+  const c = DATA.characters.find(x=>x.姓名===name);
+  if(!c){ render(); return; }
+  if(push && curDetail && curDetail !== name){
+    navStack.push(curDetail);
+  }
+  curDetail = name;
+  renderDetail(name);
+}
+
+function goBack(){
+  if(navStack.length){
+    curDetail = navStack.pop();
+    renderDetail(curDetail);
+  } else {
+    curDetail = null;
+    render();
+  }
+}
+
+function goHome(){
+  navStack = [];
+  curDetail = null;
+  render();
+}
+
+function renderDetail(name){
   const c = DATA.characters.find(x=>x.姓名===name);
   if(!c){ render(); return; }
   const rels = DATA.relationships.filter(r=>r.from===name || r.to===name);
   const evts = DATA.events.filter(e=>(e.人物||[]).includes(name));
   const kv = [['身份',c.身份],['性别',c.性别],['年龄',c.年龄],['外貌',c.外貌],['性格',c.性格],['能力',c.能力],['别名',fmtArr(c.别名)],['持有物',fmtArr(c.持有物)],['标记',c.特殊标记]];
-  let html = `<div class="back-btn" id="back">← 返回列表</div>
+  let html = `<div class="detail-nav">
+      <button class="nav-btn" id="goback">← ${navStack.length?'返回上一层':'返回列表'}</button>
+      ${breadcrumbHtml()}
+      <button class="nav-btn primary" id="gohome">回列表</button>
+    </div>
     <div class="detail-head">
-      <h2>${esc(c.姓名)} <span class="tag char">${esc(c.类型||'人物')}</span></h2>
+      <h2 style="text-align:center">${esc(c.姓名)} <span class="tag char">${esc(c.类型||'人物')}</span></h2>
       <div class="kv">${kv.map(p=>`<span class="k">${esc(p[0])}</span><span class="v">${esc(p[1])}</span>`).join('')}</div>
-      <div class="desc">${esc(c.简介)}</div>
+      <div class="desc" style="text-align:justify">${esc(c.简介)}</div>
       <div class="first">首次出现：${esc(c.首次出现)}</div>
       ${aliasHint(c)}
     </div>`;
@@ -68706,10 +68759,12 @@ function showDetail(name){
     const shownEvts = evts.sort((a,b)=>chNo(a.章节)-chNo(b.章节)).slice(0,MAXEVT);
     html += `<div class="section-title">相关事件（${evts.length}${evts.length>MAXEVT?`，仅显示前 ${MAXEVT} 条`:''}）</div><div class="timeline">`+
       shownEvts.map(e=>
-        `<div class="tl-item"><span class="ch">${esc(e.章节)}</span><h4>${esc(e.名称)}</h4><div class="desc">${esc(e.简介)}</div></div>`).join('')+'</div>';
+        `<div class="tl-item"><span class="ch">${esc(e.章节)}</span><h4>${esc(e.名称)}</h4><div class="desc" style="text-align:justify">${esc(e.简介)}</div></div>`).join('')+'</div>';
   }
   document.getElementById('main').innerHTML = html;
-  document.getElementById('back').onclick = render;
+  document.getElementById('goback').onclick = goBack;
+  document.getElementById('gohome').onclick = goHome;
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function render(){
@@ -68774,7 +68829,7 @@ function render(){
 document.getElementById('tabs').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); cur = b.dataset.tab; curChip=''; curPage=1; renderChips(); render();
+  b.classList.add('active'); cur = b.dataset.tab; curChip=''; curPage=1; navStack=[]; curDetail=null; renderChips(); render();
 });
 document.getElementById('q').addEventListener('input', ()=>{ curPage=1; render(); });
 document.getElementById('chips').addEventListener('click', e=>{
@@ -68783,8 +68838,10 @@ document.getElementById('chips').addEventListener('click', e=>{
 });
 document.getElementById('main').addEventListener('click', e=>{
   const pg = e.target.closest('.pg-btn'); if(pg){ if(pg.disabled) return; if(pg.dataset.pg==='prev') curPage--; else if(pg.dataset.pg==='next') curPage++; render(); return; }
+  const cr = e.target.closest('.crumb-node'); if(cr && !cr.classList.contains('cur')){ const nm=cr.dataset.crumb; const idx=navStack.indexOf(nm); if(idx>=0){ navStack=navStack.slice(0,idx); curDetail=nm; renderDetail(nm); } return; }
+  const ch = e.target.closest('.crumb-home'); if(ch){ goHome(); return; }
   const g = e.target.closest('.gnode'); if(g){ const nm=g.dataset.name; if(cur==='relations'){ document.getElementById('q').value=nm; render(); } else { showDetail(nm); } return; }
-  const n = e.target.closest('.relnode'); if(n){ document.getElementById('q').value = n.dataset.name; if(cur==='relations'){render();} else {showDetail(n.dataset.name);} return; }
+  const n = e.target.closest('.relnode'); if(n){ const nm=n.dataset.name; if(cur==='relations'){ document.getElementById('q').value=nm; render(); } else { showDetail(nm); } return; }
   const card = e.target.closest('.char-card'); if(card){ showDetail(card.dataset.name); return; }
   const fold = e.target.closest('.fold-head'); if(fold){ const key=fold.dataset.fold; const body=document.querySelector('[data-foldbody="'+key+'"]'); const arrow=document.querySelector('[data-foldarrow="'+key+'"]'); if(body){ const hidden=body.style.display==='none'; body.style.display=hidden?'':'none'; if(arrow) arrow.textContent=hidden?'▾':'▸'; } return; }
 });
