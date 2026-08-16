@@ -190,11 +190,6 @@ footer{text-align:center;padding:30px;color:var(--text-faint);font-size:12px;bor
 .fold-head:hover{color:var(--accent2)}
 .fold-arrow{color:var(--gold);font-size:14px}
 .fold-body{padding:16px 22px;border-top:1px solid var(--line)}
-.notebook{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 28px;box-shadow:var(--shadow);margin:6px 0;position:relative}
-.notebook::before{content:"";position:absolute;top:-8px;left:26px;width:60px;height:16px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:2px;transform:rotate(-1.5deg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.nb-page{font-size:15px;line-height:1.95;min-height:200px}
-.nb-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
-.nb-info{color:var(--text-dim);font-size:13px;min-width:70px;text-align:center}
 .reader{max-width:860px;margin:0 auto}
 .reader-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:16px;flex-wrap:wrap;position:sticky;top:56px;z-index:40}
 .reader-title{flex:1;font-size:14px;color:var(--text-dim);text-align:center;min-width:120px}
@@ -377,7 +372,7 @@ header.hero h1::after{right:-56px;transform:scaleX(-1)}
 ::-webkit-scrollbar-track{background:transparent}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-#main .grid,#main .timeline,#main .guide-grid,#main .about,#main .detail-head,#main .reader,#main .notebook,#main .fold{animation:fadeUp .22s ease}
+#main .grid,#main .timeline,#main .guide-grid,#main .about,#main .detail-head,#main .reader,#main .fold{animation:fadeUp .22s ease}
 /* 暗黑皮肤增强 */
 html[data-theme="dark"] .card{background:linear-gradient(180deg,#1a1c22,#16171c)}
 html[data-theme="dark"] .card.clickable:hover{border-color:#c95446}
@@ -429,6 +424,7 @@ html[data-theme="dark"] .chapter-events .ce-item:hover{color:#d9a94f}
 .death-item .ch{font-size:12px;color:var(--gold);font-family:var(--font-util);flex:0 0 auto}
 .death-item b{color:var(--text)}
 .death-item .death-cause{color:var(--text-dim);flex:1;text-align:right}
+.death-fac{font-size:11px;color:var(--accent2);border:1px solid var(--accent2);border-radius:8px;padding:0 6px;margin:0 2px;white-space:nowrap}
 /* 搜索高亮 */
 mark{background:rgba(217,169,79,.35);color:inherit;border-radius:3px;padding:0 2px}
 html[data-theme="dark"] mark{background:rgba(217,169,79,.28)}
@@ -491,8 +487,9 @@ html[data-theme="dark"] .qg-step{background:#1a1c22}
 <main id="main"></main>
 <footer>
   <div>为书友整理的《限制级末日症候》阅读百科 · 全书 2271 章</div>
-  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.19.1</span></div>
+  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.20.0</span></div>
   <div class="ver-history" id="verHistory" style="display:none">
+    <div class="ver-item"><b>v1.20.0</b> 百科再完善：新增「器物」子板块（关键道具获取时间线）、名句按说话人筛选、死亡簿势力标签；冒烟测试 16→24 项、清理笔记翻页死代码、线上性能实测（FCP 1.3-1.8s）、安全审计通过</div>
     <div class="ver-item"><b>v1.19.1</b> 性能与体验修复：关系图动画/拖拽缓存 DOM 引用消除卡顿（帧数减半）、边标签改悬停节点才显示解决文字重叠、节点名缩短防溢出、搜索建议按板块锁定候选（不再跨板块弹错数据）、搜索输入防抖、建议弹窗空白穿透与失焦关闭</div>
     <div class="ver-item"><b>v1.19.0</b> 数据深度升级：Flash 全书抽取 228 块原文新增四维数据（人物结局 321 / 死亡记录 351 / 名句 1013 / 关键道具 1621），新增「名句」「死亡簿」子板块、人物详情页生死状态徽章；成本约 6.2 元</div>
     <div class="ver-item"><b>v1.18.0</b> 新增「势力」板块：14 个核心势力手工清单 + 成员自动关联，点击势力查看成员列表并跳人物详情</div>
@@ -539,6 +536,7 @@ const wikiTabs = [
   {key:'locations', label:'地点'},
   {key:'monsters', label:'怪物'},
   {key:'items', label:'道具'},
+  {key:'artifacts', label:'器物'},
   {key:'orgs', label:'组织'},
   {key:'factions', label:'势力'},
   {key:'settings', label:'设定'},
@@ -681,25 +679,6 @@ function renderArticles(articles){
   </div>`).join('');
 }
 
-let notePage = 0, notePages = [];
-function splitNotePages(md){
-  const parts = String(md||'').split(/^##\s/m);
-  const pages = [];
-  if(parts[0].trim()) pages.push(parts[0].trim());
-  for(let i=1;i<parts.length;i++) pages.push('## ' + parts[i].trim());
-  return pages.length ? pages : [String(md||'')];
-}
-function renderNoteBook(md){
-  notePages = splitNotePages(md);
-  if(notePage >= notePages.length) notePage = 0;
-  return `<div class="notebook"><div class="nb-page">${md2html(notePages[notePage])}</div>
-    <div class="nb-nav">
-      <button class="nav-btn" data-nb="prev" ${notePage<=0?'disabled':''}>← 上一页</button>
-      <span class="nb-info">${notePage+1} / ${notePages.length}</span>
-      <button class="nav-btn" data-nb="next" ${notePage>=notePages.length-1?'disabled':''}>下一页 →</button>
-    </div></div>`;
-}
-
 function renderChips(){
   const key = (cur==='wiki') ? wikiSub : cur;
   const list = ['全部', ...(chipsMap[key]||[])];
@@ -795,12 +774,19 @@ function buildFactions(){
     });
   });
 }
+function factionOf(name){
+  for(const f of FACTIONS){ if((factionMembers[f.name]||[]).includes(name)) return f.name; }
+  return '';
+}
 function buildChips(){
   chipsMap.characters = ['主角','关键人物','次要人物','其他'];
   const locCounts = {};
   DATA.locations.forEach(l=>{ locCounts[l.类型] = (locCounts[l.类型]||0)+1; });
   chipsMap.locations = Object.entries(locCounts).filter(([,n])=>n>=5).sort((a,b)=>b[1]-a[1]).slice(0,14).map(([k])=>k);
   chipsMap.settings = ['系统','世界观','术语','能力','设定'];
+  const speakers = {};
+  (DATA.deep.名句||[]).forEach(q=>{ if(q.说话人) speakers[q.说话人]=(speakers[q.说话人]||0)+1; });
+  chipsMap.quotes = Object.entries(speakers).filter(([,n])=>n>=3).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k])=>k);
 }
 
 function aliasHint(c){
@@ -874,7 +860,7 @@ function renderDeathsVolumes(deaths){
   deaths.forEach(d=>{ const v = volOf(d.章节); (vols[v]=vols[v]||[]).push(d); });
   return Object.keys(vols).sort((a,b)=>a-b).map((v,i)=>{
     const list = vols[v].sort((a,b)=>chNo(a.章节)-chNo(b.章节));
-    const items = list.map(d=>`<div class="death-item"><span class="ch">${esc(d.章节)}</span><b>${esc(d.人物)}</b><span class="death-cause">${esc(d.死因)}</span></div>`).join('');
+    const items = list.map(d=>{ const fac = factionOf(d.人物); return `<div class="death-item"><span class="ch">${esc(d.章节)}</span><b>${esc(d.人物)}</b>${fac?`<span class="death-fac">${esc(fac)}</span>`:''}<span class="death-cause">${esc(d.死因)}</span></div>`; }).join('');
     return `<div class="toc-vol">
       <div class="toc-vol-head" role="button" tabindex="0" aria-expanded="${i===0}" data-evtvol="d${v}"><span>第 ${v} 卷</span><span class="toc-vol-range">${list.length} 条死亡</span><span class="toc-vol-arrow">${i===0?'▾':'▸'}</span></div>
       <div class="toc-vol-body" ${i===0?'':'style="display:none"'}>${items}</div>
@@ -1117,6 +1103,39 @@ function selectRelPerson(nm){
   const drop = document.getElementById('relDrop');
   if(drop) drop.innerHTML = relOptions(relSortedChars, nm);
   setRelDrop(false);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderArtifacts(items){
+  const byName = {};
+  items.forEach(i=>{ (byName[i.名称]=byName[i.名称]||[]).push(i); });
+  const names = Object.keys(byName).sort((a,b)=>b.length-a.length);
+  return '<div class="guide-grid">'+names.map(n=>{
+    const list = byName[n];
+    return `<div class="guide-card" data-art="${esc(n)}" role="button" tabindex="0" title="查看获取时间线">
+      <div class="gc-top"><span class="gc-name">${esc(n)}</span><span class="gc-cat">${list.length} 次</span></div>
+      <div class="gc-desc">${esc((list[0]||{}).事件||'')}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+function renderArtifactDetail(name){
+  const list = (DATA.deep.道具||[]).filter(i=>i.名称===name).sort((a,b)=>chNo(a.章节)-chNo(b.章节));
+  if(!list.length){ render(); return; }
+  setReadingMode(false);
+  let html = `<div class="detail-nav">
+      <button class="nav-btn" id="goback">← 返回</button>
+      <div class="crumb"><span class="crumb-home" data-crumb="home">🏠 百科 · 器物</span></div>
+      <button class="nav-btn primary" id="gohome">回列表</button>
+    </div>
+    <div class="detail-head">
+      <h2>${esc(name)} <span class="tag set">器物</span></h2>
+      <div class="first">出现 ${list.length} 次 · 首次 ${esc(list[0].章节)}</div>
+    </div>
+    <div class="timeline">`+
+    list.map(i=>`<div class="tl-item"><span class="ch">${esc(i.章节)}</span><div class="desc" style="text-align:justify">${esc(i.事件)}</div></div>`).join('')+
+    `</div>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('goback').onclick = render;
+  document.getElementById('gohome').onclick = render;
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function renderFactions(){
@@ -1505,7 +1524,7 @@ function render(){
     main.innerHTML = renderWikiHeader() + `<div class="result-info">共 ${FACTIONS.length} 个势力 · 点击查看成员</div>` + renderFactions();
     return;
   } else if(effCur==='quotes'){
-    const qlist = q ? (DATA.deep.名句||[]).filter(x=>JSON.stringify(x).includes(q)) : (DATA.deep.名句||[]);
+    const qlist = (DATA.deep.名句||[]).filter(x=>(!q || JSON.stringify(x).includes(q)) && (!curChip || x.说话人===curChip));
     const P = 20;
     const pages = Math.max(1, Math.ceil(qlist.length/P));
     if(curPage > pages) curPage = pages;
@@ -1516,6 +1535,10 @@ function render(){
   } else if(effCur==='deaths'){
     const dlist = q ? (DATA.deep.死亡||[]).filter(x=>JSON.stringify(x).includes(q)) : (DATA.deep.死亡||[]);
     main.innerHTML = renderWikiHeader() + `<div class="result-info">共 ${dlist.length} 条死亡记录 · 按卷分组</div>` + renderDeathsVolumes(dlist);
+    return;
+  } else if(effCur==='artifacts'){
+    const alist = q ? (DATA.deep.道具||[]).filter(x=>JSON.stringify(x).includes(q)) : (DATA.deep.道具||[]);
+    main.innerHTML = renderWikiHeader() + `<div class="result-info">共 ${alist.length} 条器物记录 · 按名称聚合</div>` + renderArtifacts(alist);
     return;
   } else if(effCur==='relations'){
     main.innerHTML = renderWikiHeader() + renderRelationsPage(); return;
@@ -1576,7 +1599,6 @@ document.getElementById('main').addEventListener('click', e=>{
   const r = e.target.closest('[data-reader]'); if(r){ const act=r.dataset.reader; if(act==='back'){ render(); } else if(act==='chapters'){ openChapterDrawer(); } else if(act==='prev'){ renderReader(curChapter-1); } else if(act==='next'){ renderReader(curChapter+1); } else if(act==='fontminus'){ readerFontSize=Math.max(13,readerFontSize-1); localStorage.setItem('readerFont', readerFontSize); applyFont(); } else if(act==='fontplus'){ readerFontSize=Math.min(24,readerFontSize+1); localStorage.setItem('readerFont', readerFontSize); applyFont(); } return; }
   const ct = e.target.closest('[data-continue]'); if(ct){ renderReader(parseInt(ct.dataset.continue,10)); return; }
   const pg = e.target.closest('.pg-btn'); if(pg){ if(pg.disabled) return; if(pg.dataset.pg==='prev') curPage--; else if(pg.dataset.pg==='next') curPage++; render(); return; }
-  const nb = e.target.closest('.nav-btn[data-nb]'); if(nb){ if(nb.disabled) return; if(nb.dataset.nb==='prev') notePage--; else if(nb.dataset.nb==='next') notePage++; const md=NOTES.gaochuan; notePages=splitNotePages(md); if(notePage<0) notePage=0; if(notePage>=notePages.length) notePage=notePages.length-1; const nbPage=document.querySelector('.nb-page'); const nbInfo=document.querySelector('.nb-info'); if(nbPage) nbPage.innerHTML=md2html(notePages[notePage]); if(nbInfo) nbInfo.textContent=(notePage+1)+' / '+notePages.length; const pv=document.querySelector('[data-nb="prev"]'); const nx=document.querySelector('[data-nb="next"]'); if(pv) pv.disabled=notePage<=0; if(nx) nx.disabled=notePage>=notePages.length-1; return; }
   const cr = e.target.closest('.crumb-node'); if(cr && !cr.classList.contains('cur')){ const nm=cr.dataset.crumb; const idx=navStack.indexOf(nm); if(idx>=0){ navStack=navStack.slice(0,idx); curDetail=nm; renderDetail(nm); } return; }
   const ch = e.target.closest('.crumb-home'); if(ch){ goHome(); return; }
   const isRelView = (cur==='wiki' && wikiSub==='relations');
@@ -1598,6 +1620,7 @@ document.getElementById('main').addEventListener('click', e=>{
   const ev = e.target.closest('[data-evt]'); if(ev){ renderEventDetail(ev.dataset.evt); return; }
   const lk = e.target.closest('.clink'); if(lk){ if(lk.dataset.lname){ showDetail(lk.dataset.lname); } else if(lk.dataset.lloc){ renderLocationDetail(lk.dataset.lloc); } else if(lk.dataset.lset){ renderGuideDetail(lk.dataset.lset); } return; }
   const fc = e.target.closest('[data-faction]'); if(fc){ renderFactionDetail(fc.dataset.faction); return; }
+  const ar = e.target.closest('[data-art]'); if(ar){ renderArtifactDetail(ar.dataset.art); return; }
   const lo = e.target.closest('[data-loc]'); if(lo){ renderLocationDetail(lo.dataset.loc); return; }
   const g = e.target.closest('.gnode'); if(g){ if(dragMoved) return; const nm=g.dataset.name; if(isRelView){ selectRelPerson(nm); } else { showDetail(nm); } return; }
   const n = e.target.closest('.relnode'); if(n){ const nm=n.dataset.name; if(!nm) return; if(isRelView){ selectRelPerson(nm); } else { showDetail(nm); } return; }
