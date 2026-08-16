@@ -6,37 +6,53 @@
 <title>限制级末日症候 · Wiki</title>
 <style>
 :root{
-  --bg:#e6dbc0; --bg2:#efe6cf; --panel:#faf3e0; --panel2:#f1e6cc;
-  --line:#d3c3a0; --text:#3a2e25; --text-dim:#6b5942; --text-faint:#7b6852;
-  --accent:#b54338; --accent2:#91631f; --gold:#8a6a2b;
-  --char:#285d94; --loc:#266d54; --set:#6b3f9c; --evt:#96591a; --rel:#9c3760;
-  --radius:14px; --shadow:0 5px 18px rgba(96,74,44,.20);
+  --bg:#d6d0c2; --bg2:#e4dfd2; --panel:#ece7da; --panel2:#e0dacb;
+  --line:#b8b0a0; --text:#2f2a24; --text-dim:#5c5448; --text-faint:#6f675a;
+  --accent:#a63d32; --accent2:#7d5f22; --gold:#7d6333;
+  --char:#2e5e8c; --loc:#2a6b54; --set:#6b4a94; --evt:#8a5418; --rel:#9c3a5e;
+  --font-body:"Noto Sans SC","PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  --font-disp:"Kaiti SC","STKaiti","KaiTi","楷体","Noto Serif SC","SimSun",serif;
+  --font-util:"Georgia","Times New Roman","Songti SC","SimSun",serif;
+  --radius:14px; --shadow:0 5px 18px rgba(74,66,52,.20);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
-  font-family:"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  font-family:var(--font-body);
   background:
-    repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(120,96,60,.07) 31px, rgba(120,96,60,.07) 32px),
-    radial-gradient(1100px 500px at 80% -10%, rgba(181,67,56,.10) 0%, transparent 55%),
+    radial-gradient(ellipse at center, transparent 62%, rgba(74,66,52,.10) 100%),
+    repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(120,96,60,.02) 3px, rgba(120,96,60,.02) 4px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(120,96,60,.05) 31px, rgba(120,96,60,.05) 32px),
     var(--bg);
-  background-attachment:fixed;
   color:var(--text); min-height:100vh; line-height:1.7;
 }
-h1,h2,h3,h4{font-family:"Kaiti SC","STKaiti","KaiTi","楷体","Noto Serif SC",serif;letter-spacing:1px}
+body::before{
+  content:"";position:fixed;top:0;bottom:0;left:16px;width:1px;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg, var(--line) 0, var(--line) 5px, transparent 5px, transparent 26px);
+  opacity:.55;
+}
+h1,h2,h3,h4{font-family:var(--font-disp);letter-spacing:1px}
+h1{letter-spacing:3px}
+h2{letter-spacing:2px}
+.stat b,.toc-no,.di-no,.ch,.gc-cat,.sg-type,.tag,.ver-badge{font-family:var(--font-util);font-variant-numeric:tabular-nums;letter-spacing:.5px}
+/* 六眼签名标记（SVG data-URI，零请求） */
+.sig-eyes{display:inline-block;width:76px;height:22px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 22'%3E%3Cg fill='none' stroke='%23a63d32' stroke-width='2'%3E%3Cellipse cx='12' cy='11' rx='8' ry='6'/%3E%3Cellipse cx='38' cy='11' rx='8' ry='6'/%3E%3Cellipse cx='64' cy='11' rx='8' ry='6'/%3E%3C/g%3E%3Cg fill='%23a63d32'%3E%3Ccircle cx='12' cy='11' r='1.8'/%3E%3Ccircle cx='38' cy='11' r='1.8'/%3E%3Ccircle cx='64' cy='11' r='1.8'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+html[data-theme="dark"] .sig-eyes{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 22'%3E%3Cg fill='none' stroke='%23c4543f' stroke-width='2'%3E%3Cellipse cx='12' cy='11' rx='8' ry='6'/%3E%3Cellipse cx='38' cy='11' rx='8' ry='6'/%3E%3Cellipse cx='64' cy='11' rx='8' ry='6'/%3E%3C/g%3E%3Cg fill='%23d4a44c'%3E%3Ccircle cx='12' cy='11' r='1.8'/%3E%3Ccircle cx='38' cy='11' r='1.8'/%3E%3Ccircle cx='64' cy='11' r='1.8'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
 a{color:var(--accent2);text-decoration:none}
 header.hero{
-  padding:44px 28px 30px; text-align:center;
+  padding:36px 28px 28px; text-align:center;
   border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(181,67,56,.10),transparent);
+  background:linear-gradient(180deg,rgba(166,61,50,.08),transparent);
 }
-header.hero .book{font-size:15px;letter-spacing:6px;color:var(--gold);text-transform:uppercase;margin-bottom:6px}
-header.hero h1{font-size:34px;font-weight:800;letter-spacing:2px;margin-bottom:8px}
-header.hero .sub{color:var(--text-dim);font-size:14px}
-.stats{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:20px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 20px;min-width:96px}
-.stat b{display:block;font-size:22px}
-.stat span{font-size:12px;color:var(--text-dim)}
+.hero-eyes{margin-bottom:10px}
+header.hero .book{font-size:13px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
+header.hero h1{font-size:32px;font-weight:800;letter-spacing:3px;margin-bottom:6px}
+.thesis{font-family:var(--font-disp);font-size:17px;color:var(--accent);letter-spacing:3px;margin-bottom:12px}
+header.hero .sub{color:var(--text-faint);font-size:13px}
+.stats{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center;margin-top:14px;color:var(--text-faint);font-size:12.5px}
+.stat{background:none;border:none;padding:0;min-width:0;display:inline;box-shadow:none}
+.stat b{display:inline;font-size:13px;color:var(--text-dim);font-weight:700}
+.stat span{font-size:12px;color:var(--text-faint)}
 nav.tabs{
   position:sticky;top:0;z-index:50;display:flex;gap:4px;padding:10px 16px;
   background:rgba(230,219,192,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
@@ -78,12 +94,14 @@ main{padding:10px 22px 60px;max-width:1280px;margin:0 auto}
   padding:28px 30px;box-shadow:var(--shadow);transition:transform .16s,border-color .16s;
 }
 .card::before{
-  content:"";position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(-2deg);
-  width:84px;height:20px;background:rgba(196,166,110,.5);border-radius:2px;
+  content:"";position:absolute;top:-8px;left:26px;
+  width:60px;height:16px;background:var(--panel2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:2px;transform:rotate(-1.5deg);
   box-shadow:0 1px 2px rgba(0,0,0,.12);
 }
 .card.clickable{cursor:pointer}
-.card.clickable:hover{transform:translateY(-3px);border-color:var(--accent)}
+.card.clickable:hover{transform:translateY(-2px);border-color:var(--accent)}
 .card h3{font-size:19px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:10px}
 .tag{font-size:11px;padding:3px 10px;border-radius:20px;letter-spacing:1px;flex:0 0 auto}
 .tag.char{background:rgba(77,163,255,.18);color:var(--char)}
@@ -164,7 +182,7 @@ footer{text-align:center;padding:30px;color:var(--text-faint);font-size:12px;bor
 .fold-arrow{color:var(--gold);font-size:14px}
 .fold-body{padding:16px 22px;border-top:1px solid var(--line)}
 .notebook{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 28px;box-shadow:var(--shadow);margin:6px 0;position:relative}
-.notebook::before{content:"";position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(-1.5deg);width:90px;height:20px;background:rgba(196,166,110,.5);border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.notebook::before{content:"";position:absolute;top:-8px;left:26px;width:60px;height:16px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:2px;transform:rotate(-1.5deg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .nb-page{font-size:15px;line-height:1.95;min-height:200px}
 .nb-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
 .nb-info{color:var(--text-dim);font-size:13px;min-width:70px;text-align:center}
@@ -209,11 +227,12 @@ body.reading .reader-toolbar{top:0}
 .wsub:hover{color:var(--text)}
 .wsub.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 html[data-theme="dark"]{
-  --bg:#0e0f13; --bg2:#15161b; --panel:#1a1c22; --panel2:#22252c;
-  --line:#2e323a; --text:#e8e5df; --text-dim:#a09c94; --text-faint:#8a857c;
-  --accent:#c95446; --accent2:#d9a94f; --gold:#c9a86a;
-  --char:#5ba0e8; --loc:#55c39a; --set:#a884e0; --evt:#d9a94f; --rel:#e0608a;
-  --shadow:0 5px 20px rgba(0,0,0,.5);
+  --bg:#0a0b0e; --bg2:#111318; --panel:#17191f; --panel2:#1f2229;
+  --line:#2b2f38; --text:#e6e3dc; --text-dim:#9b978e; --text-faint:#8a857c;
+  --accent:#c4543f; --accent2:#d4a44c; --gold:#c6a268;
+  --char:#5ba0e8; --loc:#55c39a; --set:#a884e0; --evt:#d4a44c; --rel:#e0608a;
+  --edge:#4a3f6e;
+  --shadow:0 5px 20px rgba(0,0,0,.55);
 }
 html[data-theme="dark"] body{
   background:
@@ -226,7 +245,7 @@ html[data-theme="dark"] .detail-nav{background:rgba(20,21,26,.94)}
 html[data-theme="dark"] .pager{background:rgba(20,21,26,.96)}
 html[data-theme="dark"] header.hero{background:linear-gradient(180deg,rgba(201,84,70,.10),transparent)}
 html[data-theme="dark"] .searchbar input:focus{box-shadow:0 0 0 3px rgba(201,84,70,.22)}
-html[data-theme="dark"] .card::before{background:rgba(110,110,125,.35)}
+html[data-theme="dark"] .card::before{background:var(--panel2)}
 .theme-toggle{position:fixed;top:12px;right:16px;z-index:100;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:50%;width:42px;height:42px;cursor:pointer;font-size:18px;box-shadow:var(--shadow);transition:.25s;line-height:1;display:flex;align-items:center;justify-content:center}
 .theme-toggle:hover{border-color:var(--accent);transform:rotate(25deg)}
 @media(max-width:1100px){
@@ -234,6 +253,12 @@ html[data-theme="dark"] .card::before{background:rgba(110,110,125,.35)}
 }
 @media(max-width:640px){
   body{font-size:15px}
+  .hero-eyes{margin-bottom:6px}
+  .hero-eyes .sig-eyes{width:56px;height:16px}
+  .thesis{font-size:15px;letter-spacing:2px;margin-bottom:10px}
+  .featured{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:4px 2px;margin-top:14px;scrollbar-width:none}
+  .featured::-webkit-scrollbar{display:none}
+  .feat-item{flex:0 0 auto;min-width:148px}
   .chip{padding:11px 16px;font-size:14px}
   .wsub{padding:11px 18px;font-size:14px}
   .suggest-item{padding:13px 16px}
@@ -245,10 +270,7 @@ html[data-theme="dark"] .card::before{background:rgba(110,110,125,.35)}
   header.hero .book{font-size:13px;letter-spacing:3px}
   header.hero h1{font-size:22px;letter-spacing:1px}
   header.hero .sub{font-size:13px;line-height:1.6;padding:0 8px}
-  .stats{gap:8px;margin-top:14px}
-  .stat{min-width:0;flex:1;padding:8px 6px;border-radius:10px}
-  .stat b{font-size:18px}
-  .stat span{font-size:11px}
+  .stats{gap:4px 10px;margin-top:12px}
   nav.tabs{flex-wrap:wrap;gap:6px;padding:8px 12px;overflow-x:visible}
   nav.tabs button{padding:9px 14px;font-size:14px;border-radius:9px;flex:1 1 auto;text-align:center}
   main{padding:6px 12px 70px}
@@ -284,9 +306,6 @@ header.hero h1::before,header.hero h1::after{
 }
 header.hero h1::before{left:-56px}
 header.hero h1::after{right:-56px;transform:scaleX(-1)}
-.stat{transition:transform .18s,box-shadow .18s}
-.stat:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
-.stat b{font-family:"Kaiti SC","STKaiti","KaiTi",serif;letter-spacing:1px}
 /* 人物圆形头像 */
 .avatar{
   width:46px;height:46px;border-radius:50%;flex:0 0 auto;
@@ -319,7 +338,7 @@ header.hero h1::after{right:-56px;transform:scaleX(-1)}
 .tl-item.clickable:hover .evt-arrow{opacity:1}
 /* 地点卡片可点击 */
 .loc-card.clickable{cursor:pointer}
-.loc-card.clickable:hover{transform:translateY(-3px);border-color:var(--loc)}
+.loc-card.clickable:hover{transform:translateY(-2px);border-color:var(--loc)}
 /* 章节跳转胶囊 */
 .ch-link{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:0 9px;margin:0 3px;color:var(--accent2);cursor:pointer;font-size:.9em;line-height:1.6;transition:.15s;white-space:nowrap}
 .ch-link:hover{border-color:var(--accent);color:var(--accent);background:var(--panel)}
@@ -347,17 +366,19 @@ header.hero h1::after{right:-56px;transform:scaleX(-1)}
 ::-webkit-scrollbar-track{background:transparent}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-#main .grid,#main .timeline,#main .guide-grid,#main .about,#main .detail-head,#main .reader,#main .notebook,#main .fold{animation:fadeUp .32s ease}
+#main .grid,#main .timeline,#main .guide-grid,#main .about,#main .detail-head,#main .reader,#main .notebook,#main .fold{animation:fadeUp .22s ease}
 /* 暗黑皮肤增强 */
 html[data-theme="dark"] .card{background:linear-gradient(180deg,#1a1c22,#16171c)}
 html[data-theme="dark"] .card.clickable:hover{border-color:#c95446}
 html[data-theme="dark"] body{
   background:
-    repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(255,255,255,.025) 31px, rgba(255,255,255,.025) 32px),
-    radial-gradient(900px 420px at 85% -5%, rgba(201,84,70,.14) 0%, transparent 55%),
-    radial-gradient(700px 380px at -10% 110%, rgba(119,71,173,.10) 0%, transparent 55%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(74,63,110,.18) 100%),
+    radial-gradient(900px 420px at 85% -5%, rgba(196,84,63,.14) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, transparent 0, transparent 2px, rgba(255,255,255,.012) 2px, rgba(255,255,255,.012) 3px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(255,255,255,.02) 31px, rgba(255,255,255,.02) 32px),
     var(--bg);
 }
+html[data-theme="dark"] body::before{background:repeating-linear-gradient(180deg, var(--edge) 0, var(--edge) 5px, transparent 5px, transparent 26px);opacity:.35}
 html[data-theme="dark"] .avatar.zj{background:linear-gradient(135deg,#c95446,#e0a05a)}
 html[data-theme="dark"] .detail-nav{background:rgba(20,21,26,.95)}
 html[data-theme="dark"] .chapter-events .ce-item:hover{color:#d9a94f}
@@ -417,8 +438,10 @@ html[data-theme="dark"] .qg-step{background:#1a1c22}
   <div id="chapterDrawerBody"></div>
 </div>
 <header class="hero">
-  <div class="book">World Guide</div>
+  <div class="hero-eyes"><span class="sig-eyes"></span></div>
+  <div class="book">World Guide · 书友阅读百科</div>
   <h1>限制级末日症候</h1>
+  <div class="thesis">层层醒来，永不真正醒透</div>
   <div class="sub">人物 · 图鉴 · 事件 · 关系 · 专题 · 全文阅读</div>
   <div class="stats" id="stats"></div>
   <div class="featured" id="featured"></div>
@@ -444,8 +467,9 @@ html[data-theme="dark"] .qg-step{background:#1a1c22}
 <main id="main"></main>
 <footer>
   <div>为书友整理的《限制级末日症候》阅读百科 · 全书 2271 章</div>
-  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.15.1</span></div>
+  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.16.0</span></div>
   <div class="ver-history" id="verHistory" style="display:none">
+    <div class="ver-item"><b>v1.16.0</b> 视觉整体重设计：书页皮肤改「旧病历纸」冷灰米质感（纸张纤维/装订线/档案标签/暗角）、暗黑皮肤克苏鲁暗房深化（噪点/紫青边缘光）、hero thesis 化（六眼标记+「层层醒来，永不真正醒透」）、统计降级、字体三层分工、动效收敛、移除固定背景提升移动端性能</div>
     <div class="ver-item"><b>v1.15.1</b> 「作品与作者」扩写并公允化：补充篇幅/世界观层级/核心命题与作品特点，去除过度推崇的措辞，改为客观介绍</div>
     <div class="ver-item"><b>v1.15.0</b> 深度专题再扩充（11→14 篇）：阮黎医生弧光（从病院医生到以身为药的殉道者）、玛索弧光（从梦境引路人到中继器核心）、噩梦世界全解扩写（天门计划三次造梦谱系）；关系图力导向入场动画（逐帧展开、拖拽即停）</div>
     <div class="ver-item"><b>v1.14.0</b> 内容内核加厚：关系 type 归一化与素材格式修复、人物多形态群组（详情页同角色其他形态互跳）、三篇新专题（势力详解/八景弧光/能力体系，深度专题 11 篇）、阅读器本章相关人物、伏笔清单扩至 10 条</div>
