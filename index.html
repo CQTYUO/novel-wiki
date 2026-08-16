@@ -1382,6 +1382,13 @@ function renderDetail(name){
 
 function render(){
   setReadingMode(false);
+  const sb = document.querySelector('.searchbar');
+  const chipsEl = document.getElementById('chips');
+  if(sb){
+    if(cur==='wiki'){ sb.style.display=''; chipsEl.style.display=''; }
+    else if(cur==='toc'){ sb.style.display=''; chipsEl.style.display='none'; }
+    else { sb.style.display='none'; }
+  }
   const q = document.getElementById('q').value.trim();
   const main = document.getElementById('main');
   let html = '';
