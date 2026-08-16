@@ -110,7 +110,7 @@ main{padding:10px 22px 60px;max-width:1280px;margin:0 auto}
 .tag.evt{background:rgba(232,162,58,.18);color:var(--evt)}
 .tag.rel{background:rgba(255,122,176,.18);color:var(--rel)}
 .kv{display:grid;grid-template-columns:86px 1fr;gap:6px 12px;font-size:14.5px;margin-top:12px}
-.kv .k{color:var(--text-faint);text-align:right}
+.kv .k{color:var(--text-faint);text-align:right;font-family:var(--font-util);font-size:13px;letter-spacing:.5px}
 .kv .v{color:var(--text-dim);text-align:left}
 .desc{margin-top:14px;font-size:15px;color:var(--text-dim);border-top:1px dashed var(--line);padding-top:12px;text-align:justify}
 .first{font-size:12px;color:var(--gold);margin-top:8px;text-align:center}
@@ -412,6 +412,11 @@ html[data-theme="dark"] .chapter-events .ce-item:hover{color:#d9a94f}
 .feat-icon{font-size:20px;line-height:1}
 .feat-name{font-size:14px;color:var(--text);font-weight:700}
 .feat-desc{font-size:12px;color:var(--text-faint)}
+/* 正文条目自动链接 */
+.clink{color:var(--char);border-bottom:1px dotted var(--char);cursor:pointer;transition:.15s}
+.clink:hover{color:var(--accent);border-bottom-color:var(--accent)}
+/* 关系类型筛选 */
+.rel-types{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
 /* 搜索高亮 */
 mark{background:rgba(217,169,79,.35);color:inherit;border-radius:3px;padding:0 2px}
 html[data-theme="dark"] mark{background:rgba(217,169,79,.28)}
@@ -474,8 +479,11 @@ html[data-theme="dark"] .qg-step{background:#1a1c22}
 <main id="main"></main>
 <footer>
   <div>为书友整理的《限制级末日症候》阅读百科 · 全书 2271 章</div>
-  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.16.1</span></div>
+  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.18.0</span></div>
   <div class="ver-history" id="verHistory" style="display:none">
+    <div class="ver-item"><b>v1.18.0</b> 新增「势力」板块：14 个核心势力（末日真理教/网络球/五十一区/NOG/黑巢等）手工清单 + 成员自动关联（从人物身份字段匹配），点击势力查看成员列表并跳人物详情；避开 settings 组织类别的乱数据</div>
+    <div class="ver-item"><b>v1.17.1</b> 百科深挖：事件板块按 23 卷分组折叠（替代平铺分页）、关系页新增关系类型筛选（点击类型 chip 高亮图中对应关系边）</div>
+    <div class="ver-item"><b>v1.17.0</b> 百科交叉引用升级（参考 SCP/冰火 wiki 设计）：详情页简介正文条目自动链接（人物/地点/设定名可点击互跳）、人物登场章节时间线（反查 events 跳原文）、阅读器章末补「本章相关地点」、详情页键名档案化</div>
     <div class="ver-item"><b>v1.16.1</b> 修复章节加载：根因是分卷边界不规律（请假条/感言跳过导致偏移），前端用 Math.ceil(章号/100) 猜卷号致错位区章节打不开；改为 generate.ps1 构建章号→卷号映射注入、loadChapter 数据驱动；目录页与章节抽屉改按 23 卷分组折叠展示（替代平铺）</div>
     <div class="ver-item"><b>v1.16.0</b> 视觉整体重设计：书页皮肤改「旧病历纸」冷灰米质感（纸张纤维/装订线/档案标签/暗角）、暗黑皮肤克苏鲁暗房深化（噪点/紫青边缘光）、hero thesis 化（六眼标记+「层层醒来，永不真正醒透」）、统计降级、字体三层分工、动效收敛、移除固定背景提升移动端性能</div>
     <div class="ver-item"><b>v1.15.1</b> 「作品与作者」扩写并公允化：补充篇幅/世界观层级/核心命题与作品特点，去除过度推崇的措辞，改为客观介绍</div>
@@ -518,6 +526,7 @@ const wikiTabs = [
   {key:'monsters', label:'怪物'},
   {key:'items', label:'道具'},
   {key:'orgs', label:'组织'},
+  {key:'factions', label:'势力'},
   {key:'settings', label:'设定'},
   {key:'events', label:'事件'},
   {key:'relations', label:'关系'}
@@ -584,12 +593,25 @@ function renderStats(){
 }
 
 let allNames = [];
+let sortedNames = [];
 function renderNameList(){
   const map = new Map();
   DATA.characters.forEach(c=>{ if(!map.has(c.姓名)) map.set(c.姓名,'char'); });
   DATA.locations.forEach(l=>{ if(!map.has(l.名称)) map.set(l.名称,'loc'); });
   DATA.settings.forEach(s=>{ if(!map.has(s.名称)) map.set(s.名称,'set'); });
   allNames = [...map.entries()].map(([name,type])=>({name,type})).sort((a,b)=>a.name.localeCompare(b.name,'zh'));
+  sortedNames = allNames.slice().sort((a,b)=>b.name.length-a.name.length);
+}
+function linkify(s){
+  let out = esc(s==null?'':s);
+  sortedNames.forEach(({name, type})=>{
+    if(name.length < 2) return;
+    const escName = esc(name);
+    if(!out.includes(escName)) return;
+    const dk = type==='char'?'data-lname':(type==='loc'?'data-lloc':'data-lset');
+    out = out.split(escName).join(`<span class="clink" ${dk}="${esc(name)}">${escName}</span>`);
+  });
+  return out;
 }
 function updateSuggest(){
   const qEl = document.getElementById('q');
@@ -689,6 +711,13 @@ function buildCharGroups(){
     }
   });
 }
+function charChapters(name){
+  const chs = [];
+  DATA.events.forEach(e=>{
+    if((e.人物||[]).includes(name)) chs.push(chNo(e.章节));
+  });
+  return [...new Set(chs)].filter(Boolean).sort((a,b)=>a-b);
+}
 function groupHint(c){
   const rep = Object.entries(charGroups).find(([,g])=>g.includes(c.姓名));
   if(!rep) return '';
@@ -697,12 +726,47 @@ function groupHint(c){
   return `<div class="section-title">同角色其他形态（${others.length}）</div>`+
     others.map(n=>`<span class="relnode" role="button" tabindex="0" data-name="${esc(n)}">${esc(n)}</span>`).join('');
 }
+let chVolMap = {};
+function buildChVolMap(){
+  (DATA.chapters||[]).forEach(c=>{ chVolMap[c.章号] = c.卷; });
+}
+function volOf(ch){
+  const n = chNo(ch);
+  return chVolMap[n] || Math.ceil(n/100);
+}
 function buildSearchIndex(){
   searchIndex.characters = DATA.characters.map(c=>({c, t: JSON.stringify(c)}));
   searchIndex.locations = DATA.locations.map(l=>({l, t: JSON.stringify(l)}));
   searchIndex.settings = DATA.settings.map(s=>({s, t: JSON.stringify(s)}));
   searchIndex.events = DATA.events.map(e=>({e, t: JSON.stringify(e)}));
   searchIndex.toc = (DATA.chapters||[]).map(c=>({c, t: JSON.stringify(c)}));
+}
+const FACTIONS = [
+  {name:'末日真理教', kw:'末日真理|真理教|新约末日真理|死海使徒|玛尔琼斯', desc:'末日的布道者与最终兵器，全书最古老的宗教势力', icon:'🕯'},
+  {name:'网络球', kw:'网络球|安全局', desc:'全球性神秘组织，安全局为其战斗部门，先知梅恩', icon:'🌐'},
+  {name:'五十一区', kw:'五十一区', desc:'欧美神秘组织与政府合流之地', icon:'🔭'},
+  {name:'NOG', kw:'NOG|Net_Of_GOD', desc:'黑巢、耳语者、火炬之光合并的联合机构', icon:'🛡'},
+  {name:'魔法少女十字军', kw:'魔法少女|十字军', desc:'以中继器力量移动的救援势力', icon:'⭐'},
+  {name:'黑巢', kw:'黑巢', desc:'习惯保持中立的观测者组织', icon:'🕳'},
+  {name:'山羊公会', kw:'山羊公会|山羊教团|山羊工会', desc:'膜拜山羊之神阿撒兹勒的邪教外围', icon:'🐐'},
+  {name:'中央公国', kw:'中央公国', desc:'掌握三仙岛与人造中继器的国家', icon:'🏛'},
+  {name:'研讨会', kw:'研讨会', desc:'神秘侧的研究与阴谋组织', icon:'📚'},
+  {name:'火炬之光', kw:'火炬之光', desc:'偏差能力组织，NOG 创始成员', icon:'🔥'},
+  {name:'纳粹', kw:'纳粹', desc:'千禧年计划，总部位于月球的隐藏势力', icon:'⚔'},
+  {name:'统治局', kw:'统治局', desc:'沉没于灰雾的旧文明，末日科技源头', icon:'🏚'},
+  {name:'耳语者', kw:'耳语者', desc:'八景创立的独立互助组织', icon:'🗣'},
+  {name:'潜伏者联盟', kw:'潜伏者', desc:'活跃于暗线的神秘组织', icon:'🎭'}
+];
+let factionMembers = {};
+function buildFactions(){
+  factionMembers = {};
+  FACTIONS.forEach(f=>{ factionMembers[f.name] = []; });
+  DATA.characters.forEach(c=>{
+    const id = c.身份||'';
+    FACTIONS.forEach(f=>{
+      try { if(id.match(f.kw)) factionMembers[f.name].push(c.姓名); } catch(e){}
+    });
+  });
 }
 function buildChips(){
   chipsMap.characters = ['主角','关键人物','次要人物','其他'];
@@ -779,6 +843,17 @@ function renderEvents(list){
       <div class="desc">${hl(e.简介)}</div></div>`;
   }).join('')+'</div>';
 }
+function renderEventsVolumes(events){
+  const vols = {};
+  events.forEach(e=>{ const v = volOf(e.章节); (vols[v]=vols[v]||[]).push(e); });
+  return Object.keys(vols).sort((a,b)=>a-b).map((v,i)=>{
+    const list = vols[v].sort((a,b)=>chNo(a.章节)-chNo(b.章节));
+    return `<div class="toc-vol">
+      <div class="toc-vol-head" role="button" tabindex="0" aria-expanded="${i===0}" data-evtvol="${v}"><span>第 ${v} 卷</span><span class="toc-vol-range">${list[0]?('第'+chNo(list[0].章节)+'章'):''} - ${list[list.length-1]?('第'+chNo(list[list.length-1].章节)+'章'):''} · ${list.length} 个事件</span><span class="toc-vol-arrow">${i===0?'▾':'▸'}</span></div>
+      <div class="toc-vol-body" ${i===0?'':'style="display:none"'}>${renderEvents(list)}</div>
+    </div>`;
+  }).join('');
+}
 function renderToc(list){
   return '<div class="toc-grid">'+list.map(c=>`<div class="toc-item" role="button" tabindex="0" data-ch="${c.章号}" title="点击阅读第${c.章号}章"><span class="toc-no">${c.章号}</span><span class="toc-vol-tag">卷${c.卷}</span><span class="toc-title">${hl(c.标题)}</span></div>`).join('')+'</div>';
 }
@@ -820,6 +895,20 @@ function chapterChars(targetCh){
   });
   return names.slice(0,10);
 }
+function chapterLocs(targetCh){
+  const locs = [];
+  DATA.events.forEach(e=>{
+    if(chNo(e.章节)===targetCh) (e.地点||[]).forEach(p=>{ if(!locs.includes(p)) locs.push(p); });
+  });
+  return locs.slice(0,10);
+}
+function chapterLocsBlock(targetCh){
+  const locs = chapterLocs(targetCh);
+  if(!locs.length) return '';
+  return `<div class="chapter-events"><div class="ce-title">📍 本章相关地点</div>`+
+    locs.map(n=>`<span class="relnode loc-node" role="button" tabindex="0" data-loc="${esc(n)}">${esc(n)}</span>`).join('')+
+    `</div>`;
+}
 function chapterCharsBlock(targetCh){
   const chars = chapterChars(targetCh);
   if(!chars.length) return '';
@@ -850,6 +939,7 @@ function readerHtml(ch){
       <h2 class="reader-ch-title">第${ch.章号}章 ${esc(ch.标题)}</h2>
       <div class="reader-content">${renderBody(ch.正文)}</div>
       ${chapterCharsBlock(ch.章号)}
+      ${chapterLocsBlock(ch.章号)}
       ${chapterEvents(ch.章号)}
     </div>
     <div class="reader-nav">
@@ -929,7 +1019,7 @@ function relationGraph(name){
   let s = `<svg class="relgraph" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(name)} 的关系图（下方有文字列表可查阅）" style="width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:8px">`;
   edges.forEach(e=>{
     const pa=pos[e.a], pb=pos[e.b];
-    s += `<line class="fedge" data-a="${esc(e.a)}" data-b="${esc(e.b)}" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" stroke="var(--line)" stroke-width="1.5" opacity="0.75"/>`;
+    s += `<line class="fedge" data-a="${esc(e.a)}" data-b="${esc(e.b)}" data-t="${esc(e.t)}" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" stroke="var(--line)" stroke-width="1.5" opacity="0.75"/>`;
     const mx=(pa.x+pb.x)/2, my=(pa.y+pb.y)/2;
     s += `<text x="${mx}" y="${my}" font-size="10" fill="var(--gold)" text-anchor="middle">${esc(String(e.t).slice(0,10))}</text>`;
   });
@@ -951,10 +1041,13 @@ function renderRelations(name){
   if(!rels.length) return '<div class="empty">该人物暂无关系记录</div>';
   const nodes = {};
   rels.forEach(r=>{ const other = r.from===name? r.to : r.from; if(!nodes[other]) nodes[other]=[]; nodes[other].push(`${r.type}${r.章节?('·'+r.章节):''}`); });
+  const types = [...new Set(rels.map(r=>r.type))];
+  const typeChips = types.length ? `<div class="rel-types">${types.slice(0,18).map(t=>`<span class="chip" role="button" tabindex="0" data-reltype="${esc(t)}">${esc(t)}</span>`).join('')}</div>` : '';
   return relationGraph(name) +
     `<h2 style="margin-bottom:6px">${esc(name)} 的关系</h2>
-    <div style="margin-bottom:14px;color:var(--text-faint)">共 ${rels.length} 条关系 · 点击图中节点或下方标签查看对方</div>`+
-    Object.entries(nodes).map(([o,types])=>`<span class="relnode" role="button" tabindex="0" data-name="${esc(o)}">${esc(o)}<span class="rtype">${esc([...new Set(types)].join('、'))}</span></span>`).join('');
+    <div style="margin-bottom:10px;color:var(--text-faint)">共 ${rels.length} 条关系 · 点击图中节点或下方标签查看对方</div>`+
+    typeChips+
+    Object.entries(nodes).map(([o,types2])=>`<span class="relnode" role="button" tabindex="0" data-name="${esc(o)}">${esc(o)}<span class="rtype">${esc([...new Set(types2)].join('、'))}</span></span>`).join('');
 }
 let relSortedChars = [];
 let relCurName = '';
@@ -978,6 +1071,41 @@ function selectRelPerson(nm){
   const drop = document.getElementById('relDrop');
   if(drop) drop.innerHTML = relOptions(relSortedChars, nm);
   setRelDrop(false);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderFactions(){
+  return '<div class="guide-grid">'+FACTIONS.map(f=>{
+    const members = factionMembers[f.name]||[];
+    return `<div class="guide-card" data-faction="${esc(f.name)}" role="button" tabindex="0" title="查看成员">
+      <div class="gc-top"><span class="gc-name">${f.icon} ${esc(f.name)}</span><span class="gc-cat">${members.length} 人</span></div>
+      <div class="gc-desc">${esc(f.desc)}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+function renderFactionDetail(name){
+  const f = FACTIONS.find(x=>x.name===name);
+  if(!f){ render(); return; }
+  const members = factionMembers[name]||[];
+  setReadingMode(false);
+  let html = `<div class="detail-nav">
+      <button class="nav-btn" id="goback">← 返回</button>
+      <div class="crumb"><span class="crumb-home" data-crumb="home">🏠 百科 · 势力</span></div>
+      <button class="nav-btn primary" id="gohome">回列表</button>
+    </div>
+    <div class="detail-head">
+      <h2>${f.icon} ${esc(name)} <span class="tag set">势力</span></h2>
+      <div class="desc" style="text-align:justify">${esc(f.desc)}</div>
+      <div class="first">成员 ${members.length} 人</div>
+    </div>`;
+  if(members.length){
+    html += `<div class="section-title">成员（${members.length}）</div>` +
+      members.map(m=>`<span class="relnode" role="button" tabindex="0" data-name="${esc(m)}">${esc(m)}</span>`).join('');
+  } else {
+    html += '<div class="empty">暂无记录到成员</div>';
+  }
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('goback').onclick = render;
+  document.getElementById('gohome').onclick = render;
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function renderRelationsPage(){
@@ -1066,7 +1194,7 @@ function renderLocationDetail(name){
       <div class="dh-top"><div class="dh-avatar" style="background:linear-gradient(135deg,#2a7a5e,#4fae8c)">${esc((l.名称||'?').slice(0,1))}</div></div>
       <h2>${esc(l.名称)} <span class="tag loc">地点</span></h2>
       <div class="kv" style="max-width:560px;margin:0 auto"><span class="k">类型</span><span class="v">${esc(l.类型)}</span><span class="k">所属</span><span class="v">${esc(l.所属)}</span></div>
-      <div class="desc" style="text-align:justify">${esc(l.简介)}</div>
+      <div class="desc" style="text-align:justify">${linkify(l.简介)}</div>
       <div class="first">首次出现：${esc(l.首次出现)}${chNo(l.首次出现)?` <button class="nav-btn" style="margin-left:8px;padding:4px 14px;font-size:13px" data-readch="${chNo(l.首次出现)}">📖 读该章原文</button>`:''}</div>
     </div>`;
   if(chars.length){
@@ -1097,7 +1225,7 @@ function renderEventDetail(name){
     <div class="detail-head">
       <h2>${esc(e.名称)} <span class="tag evt">事件</span></h2>
       <div class="kv" style="max-width:560px;margin:0 auto"><span class="k">章节</span><span class="v">${esc(e.章节)}</span><span class="k">人物</span><span class="v">${fmtArr(e.人物)}</span><span class="k">地点</span><span class="v">${fmtArr(e.地点)}</span></div>
-      <div class="desc" style="text-align:justify">${esc(e.简介)}</div>
+      <div class="desc" style="text-align:justify">${linkify(e.简介)}</div>
       ${chNum?`<div style="text-align:center;margin-top:16px"><button class="nav-btn primary" data-readch="${chNum}">📖 去读第 ${chNum} 章原文</button></div>`:''}
     </div>`;
   if((e.人物||[]).length){
@@ -1134,7 +1262,7 @@ function renderGuideDetail(name){
     <div class="detail-head">
       <h2 style="text-align:center">${esc(s.名称)} <span class="tag set">${esc(s.类别||'设定')}</span></h2>
       ${ev?`<div style="text-align:center;margin:10px 0"><span class="gc-eval">评价 ${esc(ev)}</span></div>`:''}
-      <div class="desc" style="text-align:justify">${esc(s.简介)}</div>
+      <div class="desc" style="text-align:justify">${linkify(s.简介)}</div>
       <div class="first">首次出现：${esc(s.首次出现)}</div>
     </div>`;
   if(relatedChars.length){
@@ -1167,12 +1295,20 @@ function renderDetail(name){
       <div class="dh-top"><div class="dh-avatar ${avatarCls(c.类型)}">${esc((c.姓名||'?').slice(0,1))}</div></div>
       <h2>${esc(c.姓名)} <span class="tag char">${esc(c.类型||'人物')}</span></h2>
       <div class="kv">${kv.map(p=>`<span class="k">${esc(p[0])}</span><span class="v">${esc(p[1])}</span>`).join('')}</div>
-      <div class="desc" style="text-align:justify">${esc(c.简介)}</div>
+      <div class="desc" style="text-align:justify">${linkify(c.简介)}</div>
       <div class="first">首次出现：${esc(c.首次出现)}${chNo(c.首次出现)?` <button class="nav-btn" style="margin-left:8px;padding:4px 14px;font-size:13px" data-readch="${chNo(c.首次出现)}">📖 读该章原文</button>`:''}</div>
       ${aliasHint(c)}
     </div>`;
   const gh = groupHint(c);
   if(gh) html += gh;
+  const chChs = charChapters(c.姓名);
+  if(chChs.length){
+    const shown = chChs.slice(0,40);
+    html += `<div class="section-title">登场章节（${chChs.length}）</div><div style="line-height:2.4">`+
+      shown.map(n=>`<span class="ch-link" role="button" tabindex="0" data-ch="${n}">第${n}章</span>`).join('')+
+      (chChs.length>40?`<span style="font-size:12px;color:var(--text-faint)">…等共 ${chChs.length} 章</span>`:'')+
+      `</div>`;
+  }
   if(rels.length){
     html += `<div class="section-title">人际关系（${rels.length}）</div>` +
       Object.entries(rels.reduce((m,r)=>{const o=r.from===name?r.to:r.from;(m[o]=m[o]||[]).push(r.type);return m;},{}))
@@ -1306,6 +1442,13 @@ function render(){
   } else if(effCur==='events'){
     list = q ? searchIndex.events.filter(x=>x.t.includes(q)).map(x=>x.e) : [...DATA.events];
     list.sort((a,b)=>chNo(a.章节)-chNo(b.章节));
+    if(!q){
+      main.innerHTML = renderWikiHeader() + `<div class="result-info">共 ${list.length} 个事件 · 按 23 卷分组</div>` + renderEventsVolumes(list);
+      return;
+    }
+  } else if(effCur==='factions'){
+    main.innerHTML = renderWikiHeader() + `<div class="result-info">共 ${FACTIONS.length} 个势力 · 点击查看成员</div>` + renderFactions();
+    return;
   } else if(effCur==='relations'){
     main.innerHTML = renderWikiHeader() + renderRelationsPage(); return;
   }
@@ -1357,7 +1500,18 @@ document.getElementById('main').addEventListener('click', e=>{
   const ch = e.target.closest('.crumb-home'); if(ch){ goHome(); return; }
   const isRelView = (cur==='wiki' && wikiSub==='relations');
   const ro = e.target.closest('.rel-opt'); if(ro){ selectRelPerson(ro.dataset.ro); return; }
+  const rt = e.target.closest('[data-reltype]'); if(rt){
+    rt.classList.toggle('on');
+    const svg = document.querySelector('#relContent svg');
+    if(svg){
+      const ons = [...document.querySelectorAll('[data-reltype].on')].map(x=>x.dataset.reltype);
+      svg.querySelectorAll('.fedge').forEach(l=>{ l.style.opacity = (ons.length===0 || ons.includes(l.dataset.t)) ? '' : '0.08'; });
+    }
+    return;
+  }
   const ev = e.target.closest('[data-evt]'); if(ev){ renderEventDetail(ev.dataset.evt); return; }
+  const lk = e.target.closest('.clink'); if(lk){ if(lk.dataset.lname){ showDetail(lk.dataset.lname); } else if(lk.dataset.lloc){ renderLocationDetail(lk.dataset.lloc); } else if(lk.dataset.lset){ renderGuideDetail(lk.dataset.lset); } return; }
+  const fc = e.target.closest('[data-faction]'); if(fc){ renderFactionDetail(fc.dataset.faction); return; }
   const lo = e.target.closest('[data-loc]'); if(lo){ renderLocationDetail(lo.dataset.loc); return; }
   const g = e.target.closest('.gnode'); if(g){ if(dragMoved) return; const nm=g.dataset.name; if(isRelView){ selectRelPerson(nm); } else { showDetail(nm); } return; }
   const n = e.target.closest('.relnode'); if(n){ const nm=n.dataset.name; if(!nm) return; if(isRelView){ selectRelPerson(nm); } else { showDetail(nm); } return; }
@@ -1608,7 +1762,7 @@ document.addEventListener('touchend', ()=>{
   if(dragNode){ dragNode=null; dragSvg=null; dragOff=null; setTimeout(()=>{ dragMoved=false; }, 0); }
 });
 
-buildSearchIndex(); buildCharGroups(); buildChips(); renderStats(); renderFeatured(); renderNameList(); renderChips(); render();
+buildSearchIndex(); buildChVolMap(); buildCharGroups(); buildFactions(); buildChips(); renderStats(); renderFeatured(); renderNameList(); renderChips(); render();
 </script>
 </body>
 </html>
