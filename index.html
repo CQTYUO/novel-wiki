@@ -70,12 +70,14 @@ nav.tabs button.active{color:#fff;background:var(--accent);border-color:var(--ac
   width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   color:var(--text);padding:12px 16px;font-size:15px;outline:none;transition:.18s;
 }
-.suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-height:320px;overflow-y:auto;z-index:120;box-shadow:var(--shadow);display:none}
-.suggest-item{padding:11px 16px;cursor:pointer;font-size:14px;color:var(--text-dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-height:320px;overflow-y:auto;z-index:120;box-shadow:var(--shadow);display:none;pointer-events:none}
+.suggest-item{padding:11px 16px;cursor:pointer;font-size:14px;color:var(--text-dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:auto}
 .sg-type{font-size:11px;padding:1px 8px;border-radius:10px;flex:0 0 auto}
 .sg-char{background:rgba(77,163,255,.15);color:var(--char)}
 .sg-loc{background:rgba(78,201,160,.15);color:var(--loc)}
 .sg-set{background:rgba(185,139,255,.15);color:var(--set)}
+.sg-evt{background:rgba(232,162,58,.15);color:var(--evt)}
+.sg-ch{background:rgba(196,166,110,.15);color:var(--gold)}
 .suggest-item:last-child{border-bottom:none}
 .suggest-item:hover{background:var(--panel2);color:var(--text)}
 .searchbar input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(181,67,56,.18)}
@@ -266,6 +268,8 @@ html[data-theme="dark"] .card::before{background:var(--panel2)}
   .featured{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:4px 2px;margin-top:14px;scrollbar-width:none}
   .featured::-webkit-scrollbar{display:none}
   .feat-item{flex:0 0 auto;min-width:148px}
+  .death-item{flex-wrap:wrap}
+  .death-item .death-cause{flex:1 1 100%;text-align:left;padding-left:0}
   .chip{padding:11px 16px;font-size:14px}
   .wsub{padding:11px 18px;font-size:14px}
   .suggest-item{padding:13px 16px}
@@ -487,8 +491,9 @@ html[data-theme="dark"] .qg-step{background:#1a1c22}
 <main id="main"></main>
 <footer>
   <div>为书友整理的《限制级末日症候》阅读百科 · 全书 2271 章</div>
-  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.19.0</span></div>
+  <div class="foot-ver"><span class="ver-badge" id="verBadge" title="点击查看版本历史">v1.19.1</span></div>
   <div class="ver-history" id="verHistory" style="display:none">
+    <div class="ver-item"><b>v1.19.1</b> 性能与体验修复：关系图动画/拖拽缓存 DOM 引用消除卡顿（帧数减半）、边标签改悬停节点才显示解决文字重叠、节点名缩短防溢出、搜索建议按板块锁定候选（不再跨板块弹错数据）、搜索输入防抖、建议弹窗空白穿透与失焦关闭</div>
     <div class="ver-item"><b>v1.19.0</b> 数据深度升级：Flash 全书抽取 228 块原文新增四维数据（人物结局 321 / 死亡记录 351 / 名句 1013 / 关键道具 1621），新增「名句」「死亡簿」子板块、人物详情页生死状态徽章；成本约 6.2 元</div>
     <div class="ver-item"><b>v1.18.0</b> 新增「势力」板块：14 个核心势力手工清单 + 成员自动关联，点击势力查看成员列表并跳人物详情</div>
     <div class="ver-item"><b>v1.17.1</b> 百科深挖：事件板块按 23 卷分组折叠（替代平铺分页）、关系页新增关系类型筛选（点击类型 chip 高亮图中对应关系边）</div>
@@ -629,10 +634,21 @@ function updateSuggest(){
   const q = qEl.value.trim();
   const sug = document.getElementById('suggest');
   if(!q){ sug.style.display='none'; qEl.setAttribute('aria-expanded','false'); return; }
-  const matches = allNames.filter(x=>x.name.includes(q)).slice(0,20);
+  const key = (cur==='wiki') ? wikiSub : cur;
+  const typeTxt = {char:'人物', loc:'地点', set:'设定', evt:'事件', ch:'章节'};
+  let candidates = [];
+  if(key==='characters') candidates = allNames.filter(x=>x.type==='char');
+  else if(key==='locations') candidates = allNames.filter(x=>x.type==='loc');
+  else if(key==='monsters'||key==='items'||key==='orgs'||key==='settings') candidates = allNames.filter(x=>x.type==='set');
+  else if(key==='events') candidates = DATA.events.slice(0,2000).map(x=>({name:x.名称, type:'evt'}));
+  else if(key==='quotes') candidates = (DATA.deep.名句||[]).map(x=>({name:x.说话人, type:'char'})).filter(x=>x.name);
+  else if(key==='deaths') candidates = (DATA.deep.死亡||[]).map(x=>({name:x.人物, type:'char'})).filter(x=>x.name);
+  else if(key==='relations') candidates = allNames.filter(x=>x.type==='char');
+  else if(key==='toc') candidates = (DATA.chapters||[]).slice(0,2271).map(x=>({name:x.标题, type:'ch'}));
+  else { sug.style.display='none'; qEl.setAttribute('aria-expanded','false'); return; }
+  const matches = candidates.filter(x=>x.name.includes(q)).slice(0,8);
   if(!matches.length){ sug.style.display='none'; qEl.setAttribute('aria-expanded','false'); return; }
-  const typeTxt = {char:'人物', loc:'地点', set:'设定'};
-  sug.innerHTML = matches.map(x=>`<div class="suggest-item" role="option" data-name="${esc(x.name)}"><span>${hl(x.name)}</span><span class="sg-type sg-${x.type}">${typeTxt[x.type]}</span></div>`).join('');
+  sug.innerHTML = matches.map(x=>`<div class="suggest-item" role="option" data-name="${esc(x.name)}"><span>${hl(x.name)}</span><span class="sg-type sg-${x.type}">${typeTxt[x.type]||''}</span></div>`).join('');
   sug.style.display='block';
   qEl.setAttribute('aria-expanded','true');
 }
@@ -851,7 +867,7 @@ function endingOf(name){
   return e || null;
 }
 function renderQuotes(list){
-  return '<div class="quote-list">'+list.map(q=>`<div class="quote-item"><div class="q-text">「${esc(q.语句)}」</div><div class="q-meta">—— ${esc(q.说话人||'未知')} <span class="ch-link" role="button" tabindex="0" data-ch="${chNo(q.章节)}">${esc(q.章节)}</span></div></div>`).join('')+'</div>';
+  return '<div class="quote-list">'+list.map(q=>`<div class="quote-item"><div class="q-text">「${hl(q.语句)}」</div><div class="q-meta">—— ${hl(q.说话人||'未知')} <span class="ch-link" role="button" tabindex="0" data-ch="${chNo(q.章节)}">${esc(q.章节)}</span></div></div>`).join('')+'</div>';
 }
 function renderDeathsVolumes(deaths){
   const vols = {};
@@ -1051,15 +1067,15 @@ function relationGraph(name){
     const pa=pos[e.a], pb=pos[e.b];
     s += `<line class="fedge" data-a="${esc(e.a)}" data-b="${esc(e.b)}" data-t="${esc(e.t)}" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" stroke="var(--line)" stroke-width="1.5" opacity="0.75"/>`;
     const mx=(pa.x+pb.x)/2, my=(pa.y+pb.y)/2;
-    s += `<text x="${mx}" y="${my}" font-size="10" fill="var(--gold)" text-anchor="middle">${esc(String(e.t).slice(0,10))}</text>`;
+    s += `<text class="fedge-label" x="${mx}" y="${my}" font-size="9" fill="var(--gold)" text-anchor="middle" style="opacity:0">${esc(String(e.t).slice(0,8))}</text>`;
   });
   names.forEach((n,i)=>{
     const p = pos[n];
     if(i===0){
       s += `<circle class="gcenter-c" cx="${p.x}" cy="${p.y}" r="44" fill="var(--accent)" stroke="#fff" stroke-width="2"/>`;
-      s += `<text class="gcenter-t" x="${p.x}" y="${p.y}" font-size="14" fill="#fff" text-anchor="middle" dominant-baseline="middle">${esc(n.slice(0,7))}</text>`;
+      s += `<text class="gcenter-t" x="${p.x}" y="${p.y}" font-size="14" fill="#fff" text-anchor="middle" dominant-baseline="middle">${esc(n.slice(0,4))}</text>`;
     } else {
-      s += `<g class="gnode" role="button" tabindex="0" aria-label="查看与 ${esc(n)} 的关系" data-name="${esc(n)}" style="cursor:pointer"><circle cx="${p.x}" cy="${p.y}" r="${isMobile?20:24}" fill="var(--panel2)" stroke="var(--char)" stroke-width="2"/><text x="${p.x}" y="${p.y}" font-size="${isMobile?10:12}" fill="var(--text)" text-anchor="middle" dominant-baseline="middle">${esc(n.slice(0,7))}</text></g>`;
+      s += `<g class="gnode" role="button" tabindex="0" aria-label="查看与 ${esc(n)} 的关系" data-name="${esc(n)}" style="cursor:pointer"><circle cx="${p.x}" cy="${p.y}" r="${isMobile?20:24}" fill="var(--panel2)" stroke="var(--char)" stroke-width="2"/><text x="${p.x}" y="${p.y}" font-size="${isMobile?10:12}" fill="var(--text)" text-anchor="middle" dominant-baseline="middle">${esc(n.slice(0,isMobile?3:4))}</text></g>`;
     }
   });
   s += '</svg>';
@@ -1518,7 +1534,20 @@ document.getElementById('tabs').addEventListener('click', e=>{
   document.getElementById('q').value = searchTerms[cur] || '';
   renderChips(); render();
 });
-document.getElementById('q').addEventListener('input', ()=>{ curPage=1; searchTerms[cur]=document.getElementById('q').value; updateSuggest(); render(); });
+let searchTimer = null;
+document.getElementById('q').addEventListener('input', ()=>{
+  curPage=1;
+  searchTerms[cur]=document.getElementById('q').value;
+  updateSuggest();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{ render(); }, 150);
+});
+document.getElementById('q').addEventListener('blur', function(){
+  const s=document.getElementById('suggest');
+  if(s) s.style.display='none';
+  this.setAttribute('aria-expanded','false');
+});
+document.getElementById('suggest').addEventListener('mousedown', e=>{ e.preventDefault(); });
 document.getElementById('suggest').addEventListener('click', e=>{
   const item = e.target.closest('.suggest-item');
   if(item){ document.getElementById('q').value = item.dataset.name; document.getElementById('suggest').style.display='none'; searchTerms[cur]=item.dataset.name; curPage=1; render(); }
@@ -1550,7 +1579,12 @@ document.getElementById('main').addEventListener('click', e=>{
     const svg = document.querySelector('#relContent svg');
     if(svg){
       const ons = [...document.querySelectorAll('[data-reltype].on')].map(x=>x.dataset.reltype);
-      svg.querySelectorAll('.fedge').forEach(l=>{ l.style.opacity = (ons.length===0 || ons.includes(l.dataset.t)) ? '' : '0.08'; });
+      svg.querySelectorAll('.fedge').forEach(l=>{
+        const op = (ons.length===0 || ons.includes(l.dataset.t)) ? '' : '0.08';
+        l.style.opacity = op;
+        const t = l.nextElementSibling;
+        if(t && t.tagName==='text') t.style.opacity = (ons.length>0 && ons.includes(l.dataset.t)) ? '1' : '0';
+      });
     }
     return;
   }
@@ -1649,36 +1683,30 @@ document.addEventListener('keydown', e=>{
   if(e.key==='ArrowLeft'){ renderReader(curChapter-1); }
   else if(e.key==='ArrowRight'){ renderReader(curChapter+1); }
 });
-// ==== 力导向图入场动画（v1.15.0）====
+// ==== 力导向图入场动画（v1.19.1 优化：缓存 DOM 引用、标签延迟更新、帧数减半）====
 let animRAF = null, pendingAnim = null;
-function updateGraphDom(svg, pos, names, edges){
-  const W=780, H=520;
-  names.forEach(n=>{
-    const p = pos[n];
-    let c=null, t=null;
-    if(n===names[0]){ c = svg.querySelector('.gcenter-c'); t = svg.querySelector('.gcenter-t'); }
-    else {
-      let g=null; svg.querySelectorAll('.gnode').forEach(x=>{ if(x.dataset.name===n) g=x; });
-      if(g){ c = g.querySelector('circle'); t = g.querySelector('text'); }
-    }
-    if(c){ c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); }
-    if(t){ t.setAttribute('x', p.x); t.setAttribute('y', p.y); }
-  });
-  edges.forEach(e=>{
-    const pa=pos[e.a], pb=pos[e.b];
-    let l=null; svg.querySelectorAll('.fedge').forEach(x=>{ if(x.dataset.a===e.a && x.dataset.b===e.b) l=x; });
-    if(!l) return;
-    l.setAttribute('x1', pa.x); l.setAttribute('y1', pa.y);
-    l.setAttribute('x2', pb.x); l.setAttribute('y2', pb.y);
-    const lt = l.nextElementSibling;
-    if(lt && lt.tagName==='text'){ lt.setAttribute('x', (pa.x+pb.x)/2); lt.setAttribute('y', (pa.y+pb.y)/2); }
-  });
-}
 function startGraphAnim(svg, pos, names, edges){
   if(animRAF){ cancelAnimationFrame(animRAF); animRAF=null; }
+  // 一次性构建 DOM 引用缓存（避免每帧 querySelectorAll 线性查找）
+  const nodeRefs = {};
+  const gnodeList = svg.querySelectorAll('.gnode');
+  names.forEach((n,i)=>{
+    if(i===0){ nodeRefs[n] = {c: svg.querySelector('.gcenter-c'), t: svg.querySelector('.gcenter-t')}; }
+    else {
+      let g=null;
+      for(const x of gnodeList){ if(x.dataset.name===n){ g=x; break; } }
+      nodeRefs[n] = g ? {c: g.querySelector('circle'), t: g.querySelector('text')} : {c:null,t:null};
+    }
+  });
+  const edgeList = svg.querySelectorAll('.fedge');
+  const edgeRefs = edges.map(e=>{
+    let l=null;
+    for(const x of edgeList){ if(x.dataset.a===e.a && x.dataset.b===e.b){ l=x; break; } }
+    return {l, lt: l ? l.nextElementSibling : null, a: e.a, b: e.b};
+  });
   const W=780, H=520, cx=W/2, cy=H/2;
   const kRep=9000, kSpr=0.06, restLen=130, kCenter=0.02;
-  let it=0; const total=240;
+  let it=0; const total=120;
   const step=()=>{
     if(!svg.isConnected || dragNode){ animRAF=null; return; }
     const T = Math.max(0.05, 1 - it/total);
@@ -1703,9 +1731,28 @@ function startGraphAnim(svg, pos, names, edges){
       pos[n].x = Math.max(50, Math.min(W-50, pos[n].x));
       pos[n].y = Math.max(40, Math.min(H-40, pos[n].y));
     });
-    updateGraphDom(svg, pos, names, edges);
+    // 更新节点与边线（缓存引用直接 setAttribute，跳过边标签）
+    names.forEach(n=>{
+      const r = nodeRefs[n], p = pos[n];
+      if(r.c){ r.c.setAttribute('cx', p.x); r.c.setAttribute('cy', p.y); }
+      if(r.t){ r.t.setAttribute('x', p.x); r.t.setAttribute('y', p.y); }
+    });
+    edgeRefs.forEach(r=>{
+      if(!r.l) return;
+      const pa=pos[r.a], pb=pos[r.b];
+      r.l.setAttribute('x1', pa.x); r.l.setAttribute('y1', pa.y);
+      r.l.setAttribute('x2', pb.x); r.l.setAttribute('y2', pb.y);
+    });
     it++;
-    if(it<total){ animRAF = requestAnimationFrame(step); } else { animRAF=null; }
+    if(it<total){ animRAF = requestAnimationFrame(step); }
+    else {
+      animRAF=null;
+      edgeRefs.forEach(r=>{
+        if(!r.lt || r.lt.tagName!=='text') return;
+        const pa=pos[r.a], pb=pos[r.b];
+        r.lt.setAttribute('x', (pa.x+pb.x)/2); r.lt.setAttribute('y', (pa.y+pb.y)/2);
+      });
+    }
   };
   animRAF = requestAnimationFrame(step);
 }
@@ -1731,7 +1778,12 @@ document.getElementById('main').addEventListener('mouseover', e=>{
   if(!svg) return;
   const nm = g.dataset.name;
   svg.querySelectorAll('.gnode').forEach(n=>{ n.style.opacity = (n===g) ? '1' : '0.35'; });
-  svg.querySelectorAll('.fedge').forEach(l=>{ l.style.opacity = (l.dataset.a===nm || l.dataset.b===nm) ? '1' : '0.12'; });
+  svg.querySelectorAll('.fedge').forEach(l=>{
+    const adj = (l.dataset.a===nm || l.dataset.b===nm);
+    l.style.opacity = adj ? '1' : '0.12';
+    const t = l.nextElementSibling;
+    if(t && t.tagName==='text') t.style.opacity = adj ? '1' : '0';
+  });
 });
 document.getElementById('main').addEventListener('mouseout', e=>{
   const g = e.target.closest('.gnode');
@@ -1739,9 +1791,14 @@ document.getElementById('main').addEventListener('mouseout', e=>{
   const svg = g.closest('svg');
   if(!svg) return;
   svg.querySelectorAll('.gnode').forEach(n=>{ n.style.opacity = ''; });
-  svg.querySelectorAll('.fedge').forEach(l=>{ l.style.opacity = ''; });
+  svg.querySelectorAll('.fedge').forEach(l=>{
+    l.style.opacity = '';
+    const t = l.nextElementSibling;
+    if(t && t.tagName==='text') t.style.opacity = '0';
+  });
 });
 let dragNode = null, dragSvg = null, dragOff = null, dragMoved = false, dragPt = null;
+let dragEdges = null, dragNodeCircles = null;
 function svgPoint(svg, cx, cy){
   const pt = svg.createSVGPoint();
   pt.x = cx; pt.y = cy;
@@ -1755,15 +1812,14 @@ function moveGNode(g, x, y, svg){
   if(c){ c.setAttribute('cx', x); c.setAttribute('cy', y); }
   if(t){ t.setAttribute('x', x); t.setAttribute('y', y); }
   const nm = g.dataset.name;
-  svg.querySelectorAll('.fedge').forEach(l=>{
+  dragEdges.forEach(r=>{
     let ax, ay, bx, by;
-    if(l.dataset.a===nm){ ax=x; ay=y; }
-    else { let found=null; svg.querySelectorAll('.gnode').forEach(gn=>{ if(gn.dataset.name===l.dataset.a) found=gn; }); const cc=found?found.querySelector('circle'):null; ax=cc?+cc.getAttribute('cx'):W/2; ay=cc?+cc.getAttribute('cy'):H/2; }
-    if(l.dataset.b===nm){ bx=x; by=y; }
-    else { let found=null; svg.querySelectorAll('.gnode').forEach(gn=>{ if(gn.dataset.name===l.dataset.b) found=gn; }); const cc=found?found.querySelector('circle'):null; bx=cc?+cc.getAttribute('cx'):W/2; by=cc?+cc.getAttribute('cy'):H/2; }
-    l.setAttribute('x1', ax); l.setAttribute('y1', ay); l.setAttribute('x2', bx); l.setAttribute('y2', by);
-    const lt = l.nextElementSibling;
-    if(lt && lt.tagName==='text'){ lt.setAttribute('x', (ax+bx)/2); lt.setAttribute('y', (ay+by)/2); }
+    if(r.a===nm){ ax=x; ay=y; }
+    else { const cc = dragNodeCircles[r.a]; ax = cc ? +cc.getAttribute('cx') : W/2; ay = cc ? +cc.getAttribute('cy') : H/2; }
+    if(r.b===nm){ bx=x; by=y; }
+    else { const cc = dragNodeCircles[r.b]; bx = cc ? +cc.getAttribute('cx') : W/2; by = cc ? +cc.getAttribute('cy') : H/2; }
+    r.l.setAttribute('x1', ax); r.l.setAttribute('y1', ay); r.l.setAttribute('x2', bx); r.l.setAttribute('y2', by);
+    if(r.lt && r.lt.tagName==='text'){ r.lt.setAttribute('x', (ax+bx)/2); r.lt.setAttribute('y', (ay+by)/2); }
   });
 }
 function dragStart(e, cx, cy){
@@ -1771,6 +1827,11 @@ function dragStart(e, cx, cy){
   if(!g) return false;
   if(animRAF){ cancelAnimationFrame(animRAF); animRAF=null; }
   dragNode = g; dragSvg = g.closest('svg');
+  // 一次性缓存边引用与节点圆引用（避免每次 mousemove 全量遍历）
+  const edgeList = dragSvg.querySelectorAll('.fedge');
+  dragEdges = [...edgeList].map(l=>({l, lt: l.nextElementSibling, a: l.dataset.a, b: l.dataset.b}));
+  dragNodeCircles = {};
+  dragSvg.querySelectorAll('.gnode').forEach(gn=>{ dragNodeCircles[gn.dataset.name] = gn.querySelector('circle'); });
   dragPt = svgPoint(dragSvg, cx, cy);
   const c = g.querySelector('circle');
   dragOff = {dx: dragPt.x - +c.getAttribute('cx'), dy: dragPt.y - +c.getAttribute('cy')};
